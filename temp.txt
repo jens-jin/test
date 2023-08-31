@@ -1,0 +1,4 @@
+# !/bin/sh
+#CARLA_ROOT=/home/carla/work/proj/carla/Dist/CARLA_Shipping_3d936af/LinuxNoEdito
+CARLA_ROOT=/home/carla/CARLA_Shipping_0.9.12-dirty
+cd ${CARLA_ROOT} && ./CarlaUE4.sh   -RenderOffScreen 2&>1

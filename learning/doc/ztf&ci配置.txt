@@ -1,0 +1,159 @@
+### 本地
+
+#### 1.安装ztf测试框架
+
+```
+python -m pip install -e    git+ssh://jing.jiang@shaitgrt01:29418/toolschain/test_framework_python@stable#egg=ztf
+
+修改：
+src/ztf/testbase/testcase.py #1254行break改为pass(重复执行用例时失败会继续，是否需要提给崔文建？)
+```
+
+#### 2.安装ztf执行器框架（参数化构建必选）
+
+框架主要功能为：向dms申请设备，关联jenkins的job到dms测试任务等...,注意安装路径需要与后面job配置里（构建--shell执行）保持一致
+
+```
+cd ~
+#git clone ssh://jing.jiang@shaitgrt01:29418/toolschain/test_framework_python（这个仓库不需要拉，如果拉了也不影响）
+#cd test_framework_python
+git clone ssh://jing.jiang@shaitgrt01:29418/toolschain/testplatformproj
+cd testplatformproj
+python3 -m pip install -r requirements.txt
+vim .env
+
+```
+
+将以下内容复制到.env文件
+
+```
+# DropnGo_Release
+TF_DROPNGO_RELESE_PATH="/home/zmtest/shf07/DropnGo_Release/"
+# Account
+SSH_PASSWORD=i6oMn3Pf
+#
+#DEBUG=True
+```
+
+
+
+#### 3.安装java环境
+
+```
+jenkins节点运行需要用到java
+java --version
+sudo apt install default-jre
+```
+
+
+
+#### 4.start.sh和update.py
+
+```
+更新代码及配置启动test_plan脚本，需要手动修改
+主要是路径问题，比如zros路径
+```
+
+### jenkins--自由风格job配置（jenkins配置不懂的可以点击后面的问号，里面是关于配置的描述）
+
+#### 1.参数化构建参数设置，按照CE-SIL_01配置即可，注意修改默认值
+
+```
+以下是可能会修改的参数：
+environment_device_device_id
+默认值：CE-SIL-02
+描述：如果是指定的设备，填入设备id，设备id可在dms查询
+
+test_plan_id
+默认值：8
+描述：测试计划id，可在dms上查询
+
+test_case_start_command
+默认值：export DISPLAY=:1;cd /home/carla/workspace/CE-SIL_01;pwd; sh start.sh;sleep 1m
+描述：测试用例开始运行的命令
+
+```
+
+#### 2.限制项目的运行节点
+
+```
+此选项为设置某一台机器作为job的执行机，与参数化构建中的environment_device_device_id（ztf框架向dms申请的设备id）不同
+```
+
+#### 4.构建--执行shell
+
+在第2点配置的机器上执行执行器代码，申请dms设备等，注意与安装ztf执行器框架时的路径相同！！
+
+```
+export PYTHONPATH=/home/$USER/testplatformproj
+cd /home/$USER/testplatformproj/ztf
+python3 jenkins_config_generate2.py  --workspace "$WORKSPACE"\
+ --environment_device_device_id "$environment_device_device_id"\
+ --environment_device_type "$environment_device_type"\
+ --environment_device_timeout "$environment_device_timeout"\
+ --job_name "$JOB_NAME"\
+ --build_number "$BUILD_NUMBER"\
+ --build_url "$BUILD_URL"\
+ --test_plan_id "$test_plan_id"\
+ --test_case_id "$test_case_id"\
+ --test_case_time_out "$test_case_time_out"\
+ --test_case_start_command "$test_case_start_command"\
+ --test_case_teardown_command "$test_case_teardown_command"\
+ --test_case_language "$test_case_language"\
+ --dms_enable "$dms_enable"\
+ --dms_executor "$dms_executor"\
+
+```
+
+#### 4.环境变量info.txt
+
+```
+运行时保存的变量，在构建后操作会用到，如钉钉、邮件等，可存到job工作区路径下
+使用变量格式 ${var}
+```
+
+#### 5.钉钉消息
+
+```
+设置钉钉消息需要在钉钉群获取机器人的key
+启用钉钉消息打钩就行，邮件同
+```
+
+#### 6.jenkins结束构建
+
+如果没有申请到dms设备，可以直接终止
+如果 申请到了dms设备，需要手动先kill掉执行的命令（test_case_start_command），让jenkins能够主动结束。如：
+
+```
+kill -9 $(pgrep -f '^sh start.sh$')
+```
+
+杀死名为sh start.sh的进程的PID
+
+### dms设备
+
+1.dms设备添加（首页 › 设备管理 › 开发板 >增加开发板）
+
+```
+Ip地址:192.168.5.xx
+类型:ipc
+状态:空闲(如果创建成功后显示不可用，点击最左列设备唯一ID重新编辑状态)
+串口号:CE-SIL-38（即设备唯一id:CE-SIL-38）
+串口端口:（ssh 端口，默认是22）
+用户名:dell
+密码:xx 用于ssh登录设置的IP
+```
+
+```
+1.你今天什么时候有空呢，问一下一些关于算法评测的事情，同步一下信息
+```
+
+```
+会议主题：了解PNC算法评测进度和情况，以及测试组和PNC组关于评测的计划等相关信息
+了解pnc算法评测进度和情况，对一下测试组和pnc组关于评测的计划
+1.dms平台适配进度，你们是打算做成定位评测那样吗，并行提高执行效率和可视化分析
+pnc有后续计划吗，重构完之后的计划，比如增加场景、校验点这些，把测试环境部署到云端这些,
+测试后面能参与或接管PNC的测试脚本/或者哪些东西呢
+jira分析和流转，
+```
+
